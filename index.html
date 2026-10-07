@@ -66,6 +66,19 @@
   .bit.e{background:#e7e9ed}
   .bit.f{background:#f6f7f9}
   .bitsLabel{display:grid;grid-template-columns:1fr 8fr 23fr;gap:4px;margin:8px 0 0;font-size:.82rem;font-weight:850;color:var(--muted);text-align:center}
+  .bitsHelp{margin-top:9px;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:#fbfcfd;color:var(--muted);font-size:.9rem;line-height:1.4}
+  .opCard{margin-top:14px;border:3px solid #b4bac4;border-radius:14px;background:#fff;padding:14px}
+  .opTitle{font-weight:950;font-size:1.05rem;margin-bottom:10px}
+  .opLine{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(1.2rem,2.5vw,1.75rem);font-weight:900;line-height:1.55}
+  .opSub{color:var(--muted);font-size:.95rem;margin-top:4px}
+  .opTable{width:100%;border-collapse:collapse;margin-top:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(1rem,2vw,1.35rem)}
+  .opTable th,.opTable td{padding:7px 8px;border-bottom:2px solid #e2e5ea;text-align:left}
+  .opTable th{font-size:.78rem;color:var(--muted);font-family:inherit;text-transform:uppercase;letter-spacing:.04em}
+  .pill{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--line);border-radius:999px;padding:4px 8px;font-weight:900}
+  .rule{margin-top:12px;padding:12px;border-left:6px solid #111827;background:#f7f7f8;font-size:1rem;line-height:1.45;font-weight:780}
+  .exampleNote{margin-top:6px;color:var(--muted);font-size:.88rem}
+  .bigInput::placeholder{color:#7a8492;opacity:1}
+  .nav .btn:disabled{opacity:.45;cursor:not-allowed}
   .explainerCard{padding:18px;position:sticky;top:14px;min-height:540px}
   .stepTop{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}
   .stepNo{font-weight:900;color:var(--muted);font-size:.95rem}
@@ -93,6 +106,9 @@
   .whiteboard .stepBody{min-height:55vh;justify-content:center}
   .whiteboard .stepTitle{font-size:clamp(2rem,5vw,4rem)}
   .whiteboard .equation{font-size:clamp(1.7rem,4.5vw,4rem)}
+  .whiteboard .opLine{font-size:clamp(1.5rem,3.8vw,3rem)}
+  .whiteboard .opTable{font-size:clamp(1.15rem,2.7vw,1.8rem)}
+  .whiteboard .rule{font-size:clamp(1.05rem,2vw,1.35rem)}
   .whiteboard .stepText{font-size:clamp(1.15rem,2vw,1.5rem)}
   .whiteboard .btn{min-height:58px;font-size:1.15rem}
   .sr-only{position:absolute !important;width:1px !important;height:1px !important;padding:0 !important;margin:-1px !important;overflow:hidden !important;clip:rect(0,0,0,0) !important;white-space:nowrap !important;border:0 !important}
@@ -119,7 +135,7 @@
   <header>
     <div>
       <h1>IEEE 754 · lavagna</h1>
-      <p class="lead">Decimale ⇄ binary32, spiegato passo passo.</p>
+      <p class="lead">Da decimale a IEEE 754 e viceversa, con operazioni visibili passo passo.</p>
     </div>
     <div class="toolbar" aria-label="Controlli">
       <div class="mode" role="group" aria-label="Verso della conversione">
@@ -136,23 +152,24 @@
       <h2 id="inputTitle" class="sr-only">Numero da convertire</h2>
       <div class="inputGrid">
         <div class="field" id="decimalField">
-          <label for="decimalInput"><span>Numero decimale</span><span class="hint">es. 0,1 · -13,5</span></label>
-          <input id="decimalInput" class="bigInput" inputmode="decimal" autocomplete="off" spellcheck="false" value="0.1" aria-describedby="decimalHelp">
-          <div id="decimalHelp" class="hint">Usa punto o virgola per i decimali. Anche Infinity, -Infinity e NaN.</div>
+          <label for="decimalInput"><span>Numero decimale</span><span class="hint">scrivi un numero</span></label>
+          <input id="decimalInput" class="bigInput" inputmode="decimal" autocomplete="off" spellcheck="false" value="0,1" aria-describedby="decimalHelp">
+          <div id="decimalHelp" class="hint">Usa punto o virgola. Esempi: <b>0,1</b> = periodico in binario · <b>9,625</b> = esatto in binario.</div>
           <div class="subactions" aria-label="Esempi decimali">
-            <button class="chip" data-example="0.1">0.1</button>
-            <button class="chip" data-example="9.625">9.625</button>
-            <button class="chip" data-example="-13.5">-13.5</button>
-            <button class="chip" data-example="0.0000001">1e-7</button>
+            <button class="chip" data-example="0.1">0,1 · periodico</button>
+            <button class="chip" data-example="9.625">9,625 · esatto</button>
+            <button class="chip" data-example="-13.5">-13,5 · esatto</button>
+            <button class="chip" data-example="0.0000001">0,0000001 · piccolo</button>
           </div>
+          <div class="exampleNote"><b>0,1</b> serve per vedere l’arrotondamento. <b>9,625</b> serve per vedere una conversione esatta.</div>
         </div>
 
         <div class="field" id="binaryField">
-          <label for="binaryInput"><span>IEEE 754 binary32</span><span class="hint">32 bit</span></label>
+          <label for="binaryInput"><span>IEEE 754 · 32 bit</span><span class="hint">binary32</span></label>
           <input id="binaryInput" class="bigInput mono" inputmode="numeric" autocomplete="off" spellcheck="false" value="00111101110011001100110011001101">
           <div class="subactions">
-            <button class="chip" data-bin="01000001000110100000000000000000">9.625</button>
-            <button class="chip" data-bin="11000001001101100000000000000000">-11.375</button>
+            <button class="chip" data-bin="01000001000110100000000000000000">9,625</button>
+            <button class="chip" data-bin="11000001001101100000000000000000">−11,375</button>
             <button class="chip" data-bin="00000000000000000000000000000000">+0</button>
           </div>
           <div class="bitbar" aria-label="Campi IEEE 754">
@@ -160,7 +177,8 @@
             <div class="bitGroup" id="expBits"></div>
             <div class="bitGroup" id="fracBits"></div>
           </div>
-          <div class="bitsLabel"><div>segno</div><div>esponente</div><div>frazione</div></div>
+          <div class="bitsLabel"><div>1 bit · segno</div><div>8 bit · esponente</div><div>23 bit · frazione</div></div>
+          <div class="bitsHelp">IEEE 754 scrive ogni numero normale in: <b>1 bit</b> di segno + <b>8 bit</b> di esponente + <b>23 bit</b> di frazione = <b>32 bit</b>.</div>
         </div>
       </div>
 
@@ -204,7 +222,7 @@ const state = {
   mode: 'dec',
   steps: [],
   index: 0,
-  decimal: '0.1',
+  decimal: '0,1',
   bits: '00111101110011001100110011001101',
   whiteboard: false,
 };
@@ -297,7 +315,7 @@ function encodeFiniteToBits(num, den, sign) {
   let e = floorLog2(num, den);
   if (e > 127) return (sign < 0 ? '1' : '0') + '11111111' + '0'.repeat(23);
 
-  // M is the 24-bit significand (leading 1 included), rounded exactly.
+  // M contiene la 1 iniziale + i 23 bit che IEEE può conservare, arrotondati esattamente.
   let scaledNum, scaledDen;
   if (23 - e >= 0) { scaledNum = num << BigInt(23-e); scaledDen = den; }
   else { scaledNum = num; scaledDen = den << BigInt(e-23); }
@@ -311,7 +329,7 @@ function encodeFiniteToBits(num, den, sign) {
 }
 
 function bitsToFields(bits) {
-  if (!/^\d{32}$/.test(bits)) throw new Error('Servono esattamente 32 bit (solo 0 e 1).');
+  if (!/^\d{32}$/.test(bits)) throw new Error('Servono esattamente 32 bit (binary32) (solo 0 e 1).');
   return { signBit: bits[0], expBits: bits.slice(1,9), fracBits: bits.slice(9) };
 }
 
@@ -388,73 +406,183 @@ function relationText(err, original) {
   return {kind:'warn',text:`⚠ Il valore cambia dopo il passaggio in binary32. Errore assoluto ≈ ${approx}.`};
 }
 
-function hexFromBits(bits){return '0x'+BigInt('0b'+bits).toString(16).padStart(8,'0').toUpperCase();}
 
 function grouped(bits){return bits.slice(0,1)+' '+bits.slice(1,9)+' '+bits.slice(9);}
 
 function formatSignedPow2(e){return e===0 ? '1' : `2<sup>${e}</sup>`}
 
-function makeDecimalSteps(parsed, bits){
-  if(parsed.kind==='nan') return [
-    {title:'Valore speciale', eq:'NaN', text:'NaN non rappresenta un numero finito. In binary32 basta un esponente tutto a 1 e una frazione non nulla.', callout:`Bit: <b>${grouped(bits)}</b><br>Hex: <b>${hexFromBits(bits)}</b>`}
-  ];
-  if(parsed.kind==='inf') return [
-    {title:'Valore speciale', eq:`${parsed.sign<0?'-':''}∞`, text:'L’infinito ha esponente tutto a 1 e frazione tutta a 0.', callout:`Bit: <b>${grouped(bits)}</b><br>Hex: <b>${hexFromBits(bits)}</b>`}
-  ];
-  if(parsed.num===0n) return [
-    {title:'Zero', eq:`${parsed.sign<0?'-':''}0`, text:'Per zero, tutti i bit sono 0. Il bit di segno resta utile per distinguere +0 e −0.', callout:`Bit: <b>${grouped(bits)}</b>`},
-    {title:'Risultato', eq:grouped(bits), text:'Questo è il pattern IEEE 754 binary32.', callout:`Hex: <b>${hexFromBits(bits)}</b>`}
-  ];
-  const sign = parsed.sign < 0 ? '1':'0';
-  const absNum=parsed.num, den=parsed.den;
-  const e=floorLog2(absNum,den);
-  const isSub=e < -126;
-  const exactBinInt = absNum * (1n); // kept explicit for pedagogy
-  const binaryPreview = toBinaryScientificPreview(absNum,den, e, 40);
-  const stored = bitsToExact(bits);
-  const {expBits, fracBits} = bitsToFields(bits);
-  const storedVal=exactDecimalOfFloat(bits);
-  const err=absRationalError(parsed,stored);
-
-  const steps=[];
-  steps.push({title:'1 · Segno',eq:`${parsed.sign<0?'-':''} → bit di segno = <b>${sign}</b>`,text:'Il modulo si lavora separatamente. Poi il bit di segno si mette in testa.',callout:`<b>Segno</b> = ${sign}`});
-  steps.push({title:'2 · Scrivo in base 2',eq:binaryPreview.text,text:binaryPreview.note,callout:binaryPreview.callout});
-  if(isSub){
-    steps.push({title:'3 · È un subnormale',eq:`|x| < 2<sup>−126</sup>`,text:'Manca la “1” implicita. Per binary32 si usa direttamente la scala 2⁻¹⁴⁹.',callout:`M = roundTiesToEven(|x| · 2<sup>149</sup>) = <b>${BigInt('0b'+fracBits).toString(10)}</b>`});
-  }else{
-    steps.push({title:'3 · Normalizzo',eq:`1.xxxxx × 2<sup>${e}</sup>`,text:'Sposto il punto fino ad avere una sola 1 prima del punto. Quel numero è l’esponente reale.',callout:`<b>e = ${e}</b>`});
-    const unbiased=e+BIAS;
-    steps.push({title:'4 · Applico il bias',eq:`${e} + 127 = <b>${unbiased}</b>`,text:'In binary32 l’esponente memorizzato è e + 127. Va scritto su 8 bit.',callout:`<b>${expBits}</b>`});
-    steps.push({title:'5 · Arrotondo a 23 bit',eq:`frazione → <b>${fracBits}</b>`,text:'Tengo 23 bit di frazione e arrotondo con la regola IEEE: nearest, ties to even.',callout:`Significand 24 bit: <b>1.${fracBits}</b>`});
-  }
-  steps.push({title:'6 · Assemblo',eq:`<b>${sign}</b> | <b>${expBits}</b> | <b>${fracBits}</b>`,text:'I tre campi formano esattamente 32 bit.',callout:`Binary32: <b>${grouped(bits)}</b><br>Hex: <b>${hexFromBits(bits)}</b>`});
-  steps.push({title:'7 · Torno indietro',eq:`${storedVal}`,text:'Ora decodifico quei 32 bit come farebbe una CPU.',callout:`Valore realmente memorizzato: <b>${storedVal}</b>`});
-  if(err && err.num!==0n){
-    steps.push({title:'8 · Controllo errore',eq:`|x − x<sub>mem</sub>|`,text:'Confronto esatto il razionale inserito con il razionale rappresentato dai 32 bit.',callout:`Errore assoluto ≈ <b>${scientificFromRational(err.num,err.den,1,10)}</b>`});
-  } else {
-    steps.push({title:'8 · Controllo errore',eq:'0',text:'I due valori coincidono esattamente.',callout:'<b>✓ Ritorno esatto</b>'});
-  }
-  return steps;
+function floorIntAndRem(num, den){
+  return { integer: num/den, rem: num%den };
 }
 
-function toBinaryScientificPreview(num,den,e,limit){
-  // Normalize exactly: y = |x| / 2^e is in [1, 2).
-  let n=num, d=den;
-  if(e>=0) d <<= BigInt(e); else n <<= BigInt(-e);
-  const whole=n/d;
-  let rem=n%d;
-  let frac='';
-  for(let i=0;i<limit && rem!==0n;i++){
-    rem*=2n;
-    if(rem>=d){frac+='1';rem-=d}else frac+='0';
+function exactDecimalRational(num, den){
+  if(num===0n) return '0';
+  let d=den, twos=0, fives=0;
+  while((d&1n)===0n){d>>=1n; twos++;}
+  while(d%5n===0n){d/=5n; fives++;}
+  if(d!==1n){ return scientificFromRational(num,den,1,12); }
+  const k=Math.max(twos,fives);
+  let scaled=num;
+  if(twos<k) scaled*=2n**BigInt(k-twos);
+  if(fives<k) scaled*=5n**BigInt(k-fives);
+  let str=scaled.toString().padStart(k+1,'0');
+  str=k===0?str:(str.slice(0,-k)+'.'+str.slice(-k));
+  return str.replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1');
+}
+
+function integerDivisionRows(integer){
+  const rows=[];
+  let n=integer;
+  if(n===0n) return [{n:0n,q:0n,r:0n}];
+  while(n>0n){
+    const q=n/2n, r=n%2n;
+    rows.push({n,q,r});
+    n=q;
   }
-  const infinite=rem!==0n;
-  const mant=`${whole.toString(2)}.${frac}${infinite?'…':''}`;
-  return {
-    text:`${mant} × 2<sup>${e}</sup>`,
-    note:'Mostro i primi bit della forma normalizzata. Il calcolo finale usa invece il valore decimale esatto.',
-    callout:`<b>Significand iniziale</b>: ${mant}`
-  };
+  return rows;
+}
+
+function fractionMultiplicationRows(rem, den, limit=36){
+  const rows=[];
+  let r=rem;
+  for(let i=0;i<limit && r!==0n;i++){
+    const twice=r*2n;
+    const bit=twice/den;
+    const next=twice%den;
+    rows.push({i:i+1, before:r, beforeText:exactDecimalRational(r,den), twice, bit:Number(bit), next, nextText:exactDecimalRational(next,den)});
+    r=next;
+  }
+  return {rows,remainder:r};
+}
+
+function makeOperationCard(title, line, sub=''){
+  return `<div class="opCard"><div class="opTitle">${title}</div><div class="opLine">${line}</div>${sub?`<div class="opSub">${sub}</div>`:''}</div>`;
+}
+
+function decimalBinaryExpansion(parsed, maxFracBits=40){
+  const {integer, rem}=floorIntAndRem(parsed.num,parsed.den);
+  const divs=integerDivisionRows(integer);
+  const intBits=integer===0n?'0':divs.map(x=>x.r.toString()).reverse().join('');
+  const mult=fractionMultiplicationRows(rem,parsed.den,maxFracBits);
+  const fracBits=mult.rows.map(x=>String(x.bit)).join('');
+  return {integer,rem,divs,intBits,mult,fracBits};
+}
+
+function binaryPreviewFromParts(parts, e){
+  const intBits=parts.intBits;
+  let fracBits=parts.fracBits;
+  let raw=`${intBits}.${fracBits || '0'}`;
+  if(parts.integer===0n){
+    const firstOne=(fracBits||'').indexOf('1');
+    if(firstOne>=0){ raw=`0.${'0'.repeat(firstOne)}${fracBits}`; }
+  }
+  if(e>=0){
+    return `1.${(intBits.slice(1)+fracBits).slice(0,42)}${(intBits.slice(1)+fracBits).length>42?'…':''} × 2<sup>${e}</sup>`;
+  }
+  const zeros=Math.max(0,(-e)-1);
+  const tail=(fracBits||'').slice(Math.max(0,zeros));
+  return `1.${tail.slice(0,42)}${tail.length>42?'…':''} × 2<sup>${e}</sup>`;
+}
+
+function roundingExplanation(parsed,bits,e,fracBits23){
+  const {integer,rem}=floorIntAndRem(parsed.num,parsed.den);
+  // Exact significand integer M before/after rounding.
+  let scaledNum, scaledDen;
+  if(23-e>=0){ scaledNum=parsed.num<<BigInt(23-e); scaledDen=parsed.den; }
+  else { scaledNum=parsed.num; scaledDen=parsed.den<<BigInt(e-23); }
+  const rawQ=scaledNum/scaledDen;
+  const rawR=scaledNum%scaledDen;
+  const twice=rawR*2n;
+  const cmp=twice<scaledDen?-1:(twice>scaledDen?1:0);
+  const up = cmp>0 || (cmp===0 && (rawQ&1n)===1n);
+  const kept=rawQ.toString(2).padStart(24,'0');
+  const guard = twice<scaledDen ? '0' : '1';
+  const sticky = twice!==scaledDen && rawR!==0n;
+  let rule;
+  if(!sticky) rule='La rappresentazione binaria si ferma prima: nessun arrotondamento.';
+  else if(cmp<0) rule='Il bit successivo è 0: lascio i 23 bit come sono.';
+  else if(cmp>0) rule='Il bit successivo è 1 e c’è altro resto: aumento di 1 la frazione.';
+  else rule=(rawQ&1n)===0n?'Esattamente a metà: il finale è pari, quindi non aumento.':'Esattamente a metà: il finale è dispari, quindi aumento di 1.';
+  return {rawQ,rawR,cmp,up,kept,guard,sticky,rule};
+}
+
+function makeDecimalSteps(parsed, bits){
+  if(parsed.kind==='nan') return [
+    {title:'Valore speciale',eq:'NaN',text:'NaN non è un numero finito.',callout:'Esponente = 255 e frazione ≠ 0 → <b>NaN</b>'}
+  ];
+  if(parsed.kind==='inf') return [
+    {title:'Valore speciale',eq:`${parsed.sign<0?'-':''}∞`,text:'Infinity è codificato senza fare divisioni o moltiplicazioni.',callout:`Segno = <b>${parsed.sign<0?'1':'0'}</b> · esponente = <b>11111111</b> · frazione = <b>00000000000000000000000</b>`}
+  ];
+  if(parsed.num===0n) return [
+    {title:'Zero',eq:`${parsed.sign<0?'-':''}0`,text:'Non servono altre operazioni.',callout:`Segno = <b>${parsed.sign<0?'1':'0'}</b> · esponente = <b>00000000</b> · frazione = <b>00000000000000000000000</b>`},
+    {title:'Risultato',eq:grouped(bits),text:'IEEE 754 usa 32 bit in tutto.',callout:'<b>1</b> bit segno + <b>8</b> bit esponente + <b>23</b> bit frazione = <b>32</b> bit'}
+  ];
+
+  const sign = parsed.sign<0 ? '1':'0';
+  const a=parsed.num,b=parsed.den;
+  const e=floorLog2(a,b);
+  const sub=e<-126;
+  const parts=decimalBinaryExpansion(parsed,40);
+  const stored=bitsToExact(bits);
+  const {expBits,fracBits}=bitsToFields(bits);
+  const storedVal=exactDecimalOfFloat(bits);
+  const err=absRationalError(parsed,stored);
+  const steps=[];
+
+  steps.push({title:'1 · Divido il numero',eq:`${parsed.sign<0?'-':''}${exactDecimalRational(a,b)}`,text:'Tolgo solo il segno. Ora lavoro sulla parte positiva.',callout:`<b>${exactDecimalRational(parts.integer,1n)}</b> + <b>${exactDecimalRational(parts.rem,b)}</b>`});
+
+  if(parts.integer===0n){
+    steps.push({title:'2 · Parte intera',eq:'0 ÷ 2',text:'La parte intera è già 0: non ci sono divisioni da fare.',callout:'Parte intera in base 2: <b>0</b>'});
+  }else{
+    parts.divs.forEach((r,idx)=>{
+      steps.push({title:`2.${idx+1} · Divisione per 2`,eq:`${r.n} ÷ 2 = ${r.q} <span class="pill">resto ${r.r}</span>`,text:'Divido ancora il quoziente finché arrivo a 0.',callout:`I resti, letti dal basso verso l’alto, diventano: <b>${parts.divs.slice(idx).map(x=>x.r.toString()).reverse().join('')}</b>`});
+    });
+  }
+  steps.push({title:'3 · Parte intera in base 2',eq:parts.intBits,text:'I resti delle divisioni si leggono dal basso verso l’alto.',callout:`${parts.integer} in decimale = <b>${parts.intBits}</b> in binario`});
+
+  if(parts.rem===0n){
+    steps.push({title:'4 · Parte decimale',eq:'0',text:'Non c’è parte decimale: le moltiplicazioni per 2 non servono.',callout:'La parte decimale è già esatta.'});
+  }else{
+    parts.mult.rows.forEach(r=>{
+      const product=exactDecimalRational(r.twice,b);
+      steps.push({title:`4.${r.i} · Moltiplico per 2`,eq:`${r.beforeText} × 2 = ${product}`,text:'La parte intera del risultato è il prossimo bit.',callout:`bit = <b>${r.bit}</b> · nuova parte decimale = <b>${r.nextText}</b>`});
+    });
+    if(parts.mult.remainder!==0n){
+      steps.push({title:'4 · La sequenza continua',eq:`${parts.fracBits}…`,text:'La parte decimale non si ferma: la scrittura binaria è periodica / continua.',callout:'Per trovare i bit da memorizzare non mi fermo qui: uso la frazione esatta per arrotondare correttamente.'});
+    }else{
+      steps.push({title:'4 · Fine delle moltiplicazioni',eq:parts.fracBits || '0',text:'La parte decimale è terminata esattamente.',callout:`Parte decimale in base 2: <b>0.${parts.fracBits}</b>`});
+    }
+  }
+
+  const preview=parts.intBits+'.'+(parts.fracBits||'0');
+  steps.push({title:'5 · Unisco i due pezzi',eq:preview+(parts.mult.remainder!==0n?'…':''),text:'Ora ho il numero scritto in base 2, prima di adattarlo al formato IEEE 754.',callout:`Decimale: <b>${exactDecimalRational(a,b)}</b> → binario: <b>${preview}${parts.mult.remainder!==0n?'…':''}</b>`});
+
+  if(sub){
+    steps.push({title:'6 · Numero troppo piccolo per la forma normale',eq:`|x| < 2<sup>−126</sup>`,text:'È un subnormale: qui non compare la 1 implicita.',callout:`IEEE usa la scala <b>2<sup>−149</sup></b> e una frazione di 23 bit.`});
+  }else{
+    const normalized=binaryPreviewFromParts(parts,e);
+    steps.push({title:'6 · Sposto la virgola',eq:normalized,text:'Sposto la virgola finché resta una sola cifra 1 a sinistra. Il numero di spostamenti è l’esponente reale.',callout:`Esponente reale: <b>e = ${e}</b>`});
+    const unbiased=e+BIAS;
+    steps.push({title:'7 · Esponente: aggiungo 127',eq:`${e} + 127 = <b>${unbiased}</b>`,text:'IEEE 754 memorizza l’esponente con un bias di 127.',callout:`${unbiased} in 8 bit = <b>${expBits}</b>`});
+    const rnd=roundingExplanation(parsed,bits,e,fracBits);
+    steps.push({title:'8 · Conservo 23 bit dopo la 1',eq:`1.${fracBits}`,text:'La 1 iniziale è implicita: non occupa spazio. IEEE conserva i 23 bit dopo la virgola.',callout:`<b>Regola IEEE</b>: 1 iniziale implicita + <b>23 bit memorizzati</b>.<br>Se serve, il bit successivo decide l’arrotondamento.`});
+    if(rnd.rawR!==0n){
+      steps.push({title:'9 · Arrotondamento IEEE',eq:`bit successivo = ${rnd.guard}`,text:rnd.rule,callout:`${rnd.up?'→ incremento di 1 nella frazione.':'→ nessun incremento.'}<br>Questo passaggio viene calcolato sulla frazione esatta, non sulla preview.`});
+    }
+    steps.push({title:'10 · Costruisco i 32 bit',eq:`<b>${sign}</b> | <b>${expBits}</b> | <b>${fracBits}</b>`,text:'Il formato è fisso: 1 + 8 + 23 = 32 bit.',callout:'<b>Segno</b> = 1 bit · <b>Esponente</b> = 8 bit · <b>Frazione</b> = 23 bit'});
+  }
+
+  if(sub){
+    steps.push({title:'7 · Costruisco i 32 bit',eq:`<b>${sign}</b> | <b>${expBits}</b> | <b>${fracBits}</b>`,text:'Per il subnormale, esponente e frazione seguono la scala speciale mostrata sopra.',callout:'1 + 8 + 23 = <b>32 bit</b>'});
+  }
+
+  steps.push({title:'Ultimo controllo · Torno al decimale',eq:storedVal,text:'Leggo di nuovo i 32 bit. Questo è il valore realmente memorizzato.',callout:`Valore inserito: <b>${parsed.sign<0?'-':''}${exactDecimalRational(a,b)}</b><br>Valore memorizzato: <b>${storedVal}</b>`});
+  if(err && err.num!==0n){
+    steps.push({title:'Errore di ritorno',eq:`|x − x<sub>mem</sub>|`,text:'I due numeri non coincidono: binary32 ha dovuto arrotondare.',callout:`Errore assoluto ≈ <b>${scientificFromRational(err.num,err.den,1,10).replace(/\./g, ',')}</b>`});
+  }else{
+    steps.push({title:'Controllo riuscito',eq:'0',text:'Il numero torna esattamente uguale.',callout:'<b>✓ Nessuna perdita</b>'});
+  }
+  return steps;
 }
 
 function makeBinarySteps(bits){
@@ -462,7 +590,7 @@ function makeBinarySteps(bits){
   const exact=bitsToExact(bits);
   const E=parseInt(f.expBits,2), F=BigInt('0b'+f.fracBits);
   const steps=[];
-  steps.push({title:'1 · Divido i 32 bit',eq:`<b>${f.signBit}</b> | <b>${f.expBits}</b> | <b>${f.fracBits}</b>`,text:'1 bit di segno, 8 bit di esponente, 23 bit di frazione.',callout:`Hex: <b>${hexFromBits(bits)}</b>`});
+  steps.push({title:'1 · Divido i 32 bit (binary32)',eq:`<b>${f.signBit}</b> | <b>${f.expBits}</b> | <b>${f.fracBits}</b>`,text:'Il numero è diviso in 3 pezzi: 1 bit + 8 bit + 23 bit = 32 bit.',callout:``});
   if(exact.kind==='nan'){
     steps.push({title:'2 · Valore speciale',eq:'NaN',text:'Esponente = 255 e frazione diversa da zero.',callout:`E = <b>${E}</b>, F ≠ 0 → <b>NaN</b>`});
     return steps;
@@ -480,11 +608,11 @@ function makeBinarySteps(bits){
   } else {
     const e=E-BIAS;
     steps.push({title:'2 · Tolgo il bias',eq:`${E} − 127 = <b>${e}</b>`,text:'L’esponente memorizzato non è quello reale: devo togliere 127.',callout:`e = <b>${e}</b>`});
-    steps.push({title:'3 · Ricostruisco la significand',eq:`1.${f.fracBits}`,text:'Per un numero normale la 1 davanti al punto è implicita.',callout:'Sommo i pesi dei 23 bit della frazione.'});
+    steps.push({title:'3 · Aggiungo la 1 iniziale',eq:`1.${f.fracBits}`,text:'Per un numero normale, davanti ai 23 bit della frazione c’è sempre una 1 implicita.',callout:'Il pezzo letto è <b>1</b> + <b>23 bit</b>. La 1 non occupa uno dei 23 bit memorizzati.'});
     const terms=[];
     for(let i=0;i<23;i++) if(f.fracBits[i]==='1') terms.push(`2<sup>−${i+1}</sup>`);
     const fracText=terms.length?terms.join(' + '):'0';
-    steps.push({title:'4 · Valuto la frazione',eq:`1 + (${fracText})`,text:'Ogni 1 della frazione vale una potenza negativa di 2.',callout:`Frazione = <b>${rationalToExactDecimal(F,1n<<23n,1)}</b><br>Significand = <b>${rationalToExactDecimal((1n<<23n)+F,1n<<23n,1)}</b>`});
+    steps.push({title:'4 · Valuto la frazione',eq:`1 + (${fracText})`,text:'Ogni 1 della frazione vale una potenza negativa di 2.',callout:`Frazione = <b>${rationalToExactDecimal(F,1n<<23n,1)}</b><br>Numero normalizzato = <b>1 + frazione</b>`});
   }
   const storedVal=exactDecimalOfFloat(bits);
   const signTxt=f.signBit==='1'?'−':'';
@@ -544,7 +672,7 @@ function setBinary(value){
   }
   if(bits.length!==32){
     state.bits=bits;
-    state.steps=[{title:'Controllo input',eq:`${bits.length} / 32 bit`,text:'Servono esattamente 32 bit.',callout:'Usa solo 0 e 1.'}];
+    state.steps=[{title:'Controllo input',eq:`${bits.length} / 32 bit (binary32)`,text:'Servono esattamente 32 bit (binary32).',callout:'Usa solo 0 e 1.'}];
     state.index=0; renderState(false); return;
   }
   state.bits=bits;
@@ -552,7 +680,7 @@ function setBinary(value){
   const x=bitsToExact(bits);
   const dec=x.kind==='nan'?'NaN':x.kind==='inf'?(x.sign<0?'-Infinity':'Infinity'):exactDecimalOfFloat(bits);
   state.steps=makeBinarySteps(bits); state.index=0;
-  $('decimalInput').value=dec;
+  $('decimalInput').value=dec.replace(/\./g, ',');
   renderState();
 }
 
@@ -564,17 +692,17 @@ function renderState(updateBinary=true){
   if(state.mode==='dec' && parsed){
     const stored=bitsToExact(state.bits);
     const storedVal=exactDecimalOfFloat(state.bits);
-    $('resultTitle').textContent='Valore memorizzato in binary32';
-    $('resultValue').textContent=storedVal;
+    $('resultTitle').textContent='Valore che resta nei 32 bit';
+    $('resultValue').textContent=storedVal.replace(/\./g, ',');
     const err=absRationalError(parsed,stored);
     if(err && err.num===0n){$('status').className='status ok';$('status').textContent='✓ Ritorno esatto: il valore è rappresentabile senza errore.';$('errorText').textContent='';}
-    else if(err){$('status').className='status warn';$('status').textContent='⚠ Il valore è stato arrotondato in binary32.';$('errorText').textContent='Errore assoluto ≈ '+scientificFromRational(err.num,err.den,1,10);}
+    else if(err){$('status').className='status warn';$('status').textContent='⚠ Il valore è stato arrotondato in binary32.';$('errorText').textContent='Errore assoluto ≈ '+scientificFromRational(err.num,err.den,1,10).replace(/\./g, ',');}
     else {$('status').className='status';$('status').textContent='';$('errorText').textContent='';}
   } else if(state.mode==='bin' && /^\d{32}$/.test(state.bits)) {
     const x=bitsToExact(state.bits);
     $('resultTitle').textContent='Valore decimale';
-    $('resultValue').textContent=x.kind==='nan'?'NaN':x.kind==='inf'?(x.sign<0?'-Infinity':'Infinity'):exactDecimalOfFloat(state.bits);
-    $('status').className='status ok'; $('status').textContent='✓ Decodifica esatta dei 32 bit.';$('errorText').textContent='';
+    $('resultValue').textContent=(x.kind==='nan'?'NaN':x.kind==='inf'?(x.sign<0?'-Infinity':'Infinity'):exactDecimalOfFloat(state.bits)).replace(/\./g, ',');
+    $('status').className='status ok'; $('status').textContent='✓ Decodifica esatta dei 32 bit (binary32).';$('errorText').textContent='';
   } else {
     $('resultTitle').textContent='Valore';$('resultValue').textContent='—';$('status').className='status bad';$('status').textContent='✕ Input incompleto o non valido.';$('errorText').textContent='';
   }
@@ -608,7 +736,7 @@ document.addEventListener('keydown',e=>{
   if(e.key===' '){e.preventDefault(); if(state.index<state.steps.length-1){state.index++;renderState()}}
 });
 
-setDecimal('0.1');
+setDecimal('0,1');
 </script>
 </body>
 </html>
