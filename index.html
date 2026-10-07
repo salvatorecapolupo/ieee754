@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IEEE 754 — convertitore passo passo</title>
+<style>
+  :root{
+    --bg:#f4f5f7;
+    --panel:#ffffff;
+    --ink:#111827;
+    --muted:#566071;
+    --line:#c8ced8;
+    --focus:#111827;
+    --accent:#1f2937;
+    --accentText:#ffffff;
+    --ok:#0f5132;
+    --warn:#7a4b00;
+    --bad:#8a1c1c;
+    --okBg:#e9f7ef;
+    --warnBg:#fff7df;
+    --badBg:#fdecec;
+    --shadow:0 8px 30px rgba(17,24,39,.08);
+    --r:18px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}
+  body{min-height:100vh}
+  button,input{font:inherit}
+  button{cursor:pointer}
+  .app{max-width:1500px;margin:0 auto;padding:20px}
+  header{display:flex;gap:20px;justify-content:space-between;align-items:flex-end;margin-bottom:16px}
+  h1{font-size:clamp(1.6rem,2.4vw,2.4rem);margin:.1rem 0 .3rem;letter-spacing:-.02em}
+  .lead{margin:0;color:var(--muted);font-size:clamp(.95rem,1.2vw,1.1rem)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn{border:2px solid var(--line);background:var(--panel);color:var(--ink);padding:10px 14px;border-radius:12px;font-weight:750;min-height:46px}
+  .btn:hover{border-color:#9aa3b2;background:#fafafa}
+  .btn:focus-visible,.bit:focus-visible,input:focus-visible{outline:4px solid #f59e0b;outline-offset:2px}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accentText)}
+  .mode{display:inline-flex;border:2px solid var(--line);padding:3px;border-radius:14px;background:var(--panel)}
+  .mode button{border:0;background:transparent;padding:9px 12px;border-radius:10px;font-weight:800;min-height:40px}
+  .mode button[aria-pressed="true"]{background:var(--accent);color:var(--accentText)}
+  main{display:grid;grid-template-columns:minmax(340px,.95fr) minmax(480px,1.45fr);gap:16px;align-items:start}
+  .card{background:var(--panel);border:2px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+  .inputCard{padding:18px}
+  .inputGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .field label{display:flex;justify-content:space-between;gap:8px;font-weight:850;margin:0 0 8px;font-size:1.05rem}
+  .hint{color:var(--muted);font-weight:650;font-size:.9rem}
+  .bigInput{width:100%;padding:15px 16px;border:3px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);font-size:clamp(1.25rem,2.5vw,2rem);font-weight:800;letter-spacing:.02em;min-height:64px}
+  .bigInput.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;letter-spacing:.05em}
+  .subactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .chip{border:2px solid var(--line);background:#fff;padding:8px 10px;border-radius:10px;font-weight:750}
+  .result{margin-top:16px;padding:15px;border-radius:14px;border:2px solid var(--line);background:#fafbfc}
+  .resultTitle{font-weight:900;margin-bottom:8px}
+  .resultVal{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(1.15rem,2vw,1.6rem);font-weight:850;word-break:break-word}
+  .status{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding:11px 12px;border:2px solid currentColor;border-radius:12px;font-weight:760;line-height:1.35}
+  .status.ok{color:var(--ok);background:var(--okBg)}
+  .status.warn{color:var(--warn);background:var(--warnBg)}
+  .status.bad{color:var(--bad);background:var(--badBg)}
+  .errorText{margin-top:8px;font-size:1rem}
+  .bitbar{display:grid;grid-template-columns:1fr 8fr 23fr;gap:4px;margin-top:14px}
+  .bit{min-width:0;min-height:58px;border:2px solid var(--line);background:#fff;border-radius:8px;font-weight:950;font-family:ui-monospace,monospace;font-size:clamp(1rem,1.7vw,1.35rem)}
+  .bitGroup{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+  .bit.m1{background:#eef0f3}
+  .bit.s{background:#f2f2f2}
+  .bit.e{background:#e7e9ed}
+  .bit.f{background:#f6f7f9}
+  .bitsLabel{display:grid;grid-template-columns:1fr 8fr 23fr;gap:4px;margin:8px 0 0;font-size:.82rem;font-weight:850;color:var(--muted);text-align:center}
+  .explainerCard{padding:18px;position:sticky;top:14px;min-height:540px}
+  .stepTop{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}
+  .stepNo{font-weight:900;color:var(--muted);font-size:.95rem}
+  .progress{height:10px;background:#e9ebef;border:1px solid #d4d8df;border-radius:999px;overflow:hidden;margin:0 0 18px}
+  .progress > div{height:100%;background:var(--accent);width:0;transition:width .2s ease}
+  .stepBody{min-height:310px;display:flex;flex-direction:column;justify-content:center}
+  .stepTitle{font-size:clamp(1.45rem,3vw,2.15rem);margin:0 0 12px;letter-spacing:-.02em}
+  .equation{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(1.2rem,2.6vw,2rem);font-weight:900;line-height:1.6;word-break:break-word}
+  .equation small{font-size:.6em;font-weight:800;color:var(--muted)}
+  .stepText{color:var(--muted);font-size:1.02rem;line-height:1.5;max-width:75ch}
+  .callout{margin-top:14px;padding:14px;border:3px solid #9aa3b2;border-radius:14px;background:#fafafa;font-weight:780;line-height:1.45}
+  .nav{display:flex;justify-content:space-between;gap:10px;margin-top:14px}
+  .nav .btn{flex:1;font-size:1.05rem}
+  .stepDots{display:flex;gap:5px;flex-wrap:wrap;margin-top:12px}
+  .dot{width:12px;height:12px;border-radius:50%;border:2px solid #7b8492;background:#fff}
+  .dot.active{background:var(--accent);border-color:var(--accent)}
+  .legend{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+  .legend > div{border:2px solid var(--line);border-radius:12px;padding:9px 10px;font-weight:820}
+  .legend strong{display:block;font-family:ui-monospace,monospace;font-size:1.1rem}
+  .legend span{display:block;color:var(--muted);font-size:.83rem;margin-top:3px}
+  .whiteboard .app{max-width:none;padding:12px}
+  .whiteboard main{grid-template-columns:1fr;gap:10px}
+  .whiteboard .inputCard{order:2}
+  .whiteboard .explainerCard{order:1;position:static;min-height:0;padding:24px}
+  .whiteboard .stepBody{min-height:55vh;justify-content:center}
+  .whiteboard .stepTitle{font-size:clamp(2rem,5vw,4rem)}
+  .whiteboard .equation{font-size:clamp(1.7rem,4.5vw,4rem)}
+  .whiteboard .stepText{font-size:clamp(1.15rem,2vw,1.5rem)}
+  .whiteboard .btn{min-height:58px;font-size:1.15rem}
+  .sr-only{position:absolute !important;width:1px !important;height:1px !important;padding:0 !important;margin:-1px !important;overflow:hidden !important;clip:rect(0,0,0,0) !important;white-space:nowrap !important;border:0 !important}
+  @media (max-width:1000px){
+    main{grid-template-columns:1fr}
+    .explainerCard{position:static}
+    .inputGrid{grid-template-columns:1fr}
+  }
+  @media (max-width:620px){
+    .app{padding:10px}
+    header{align-items:flex-start;flex-direction:column;gap:10px}
+    .bitbar,.bitsLabel{grid-template-columns:1fr}
+    .bitsLabel{display:none}
+    .bitbar{gap:8px}
+    .bitGroup{gap:4px}
+    .bit{min-height:52px}
+    .legend{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <div>
+      <h1>IEEE 754 · lavagna</h1>
+      <p class="lead">Decimale ⇄ binary32, spiegato passo passo.</p>
+    </div>
+    <div class="toolbar" aria-label="Controlli">
+      <div class="mode" role="group" aria-label="Verso della conversione">
+        <button id="modeDec" aria-pressed="true">Decimale → IEEE</button>
+        <button id="modeBin" aria-pressed="false">IEEE → decimale</button>
+      </div>
+      <button class="btn" id="whiteboardBtn" type="button">◱ Lavagna</button>
+      <button class="btn" id="resetBtn" type="button">↺ Riparti</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="card inputCard" aria-labelledby="inputTitle">
+      <h2 id="inputTitle" class="sr-only">Numero da convertire</h2>
+      <div class="inputGrid">
+        <div class="field" id="decimalField">
+          <label for="decimalInput"><span>Numero decimale</span><span class="hint">es. 0,1 · -13,5</span></label>
+          <input id="decimalInput" class="bigInput" inputmode="decimal" autocomplete="off" spellcheck="false" value="0.1" aria-describedby="decimalHelp">
+          <div id="decimalHelp" class="hint">Usa punto o virgola per i decimali. Anche Infinity, -Infinity e NaN.</div>
+          <div class="subactions" aria-label="Esempi decimali">
+            <button class="chip" data-example="0.1">0.1</button>
+            <button class="chip" data-example="9.625">9.625</button>
+            <button class="chip" data-example="-13.5">-13.5</button>
+            <button class="chip" data-example="0.0000001">1e-7</button>
+          </div>
+        </div>
+
+        <div class="field" id="binaryField">
+          <label for="binaryInput"><span>IEEE 754 binary32</span><span class="hint">32 bit</span></label>
+          <input id="binaryInput" class="bigInput mono" inputmode="numeric" autocomplete="off" spellcheck="false" value="00111101110011001100110011001101">
+          <div class="subactions">
+            <button class="chip" data-bin="01000001000110100000000000000000">9.625</button>
+            <button class="chip" data-bin="11000001001101100000000000000000">-11.375</button>
+            <button class="chip" data-bin="00000000000000000000000000000000">+0</button>
+          </div>
+          <div class="bitbar" aria-label="Campi IEEE 754">
+            <div class="bitGroup" id="signBits"></div>
+            <div class="bitGroup" id="expBits"></div>
+            <div class="bitGroup" id="fracBits"></div>
+          </div>
+          <div class="bitsLabel"><div>segno</div><div>esponente</div><div>frazione</div></div>
+        </div>
+      </div>
+
+      <div class="result" id="resultPanel">
+        <div class="resultTitle" id="resultTitle">Valore memorizzato</div>
+        <div class="resultVal" id="resultValue">0.100000001490116119384765625</div>
+        <div id="status" class="status warn" role="status" aria-live="polite">⚠ Il valore non è rappresentabile esattamente in binary32.</div>
+        <div class="errorText" id="errorText"></div>
+      </div>
+    </section>
+
+    <section class="card explainerCard" aria-labelledby="stepsTitle">
+      <div class="stepTop">
+        <div>
+          <div class="stepNo" id="stepNo">Passo 1 di 1</div>
+          <h2 class="stepTitle" id="stepsTitle">Procedimento</h2>
+        </div>
+        <div class="hint">← → da tastiera</div>
+      </div>
+      <div class="progress" aria-hidden="true"><div id="progressBar"></div></div>
+      <div class="stepBody" id="stepBody"></div>
+      <div class="nav">
+        <button class="btn" id="prevBtn" type="button">← Indietro</button>
+        <button class="btn primary" id="nextBtn" type="button">Avanti →</button>
+      </div>
+      <div class="stepDots" id="stepDots" aria-hidden="true"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+'use strict';
+
+// IEEE-754 binary32: 1 sign + 8 exponent + 23 fraction, bias 127.
+const BIAS = 127;
+const FRAC_BITS = 23;
+const SIGN_SHIFT = 31;
+
+const $ = (id) => document.getElementById(id);
+const state = {
+  mode: 'dec',
+  steps: [],
+  index: 0,
+  decimal: '0.1',
+  bits: '00111101110011001100110011001101',
+  whiteboard: false,
+};
+
+function bitLength(n) {
+  if (n === 0n) return 0;
+  return n.toString(2).length;
+}
+
+function pow10(n) { return 10n ** BigInt(n); }
+
+function parseDecimal(text) {
+  let s = String(text).trim().replace(',', '.');
+  if (/^\+?Infinity$/i.test(s)) return { kind: 'inf', sign: 1 };
+  if (/^-Infinity$/i.test(s)) return { kind: 'inf', sign: -1 };
+  if (/^[+-]?NaN$/i.test(s) || /^NaN$/i.test(s)) return { kind: 'nan' };
+  if (!s) throw new Error('Inserisci un numero.');
+  if (!/^[+-]?(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?$/.test(s)) {
+    throw new Error('Numero decimale non valido.');
+  }
+  const sign = s.startsWith('-') ? -1 : 1;
+  const significantDigits = (s.replace(/^[+-]/,'').split(/[eE]/i)[0] || '').replace('.','').length;
+  if (significantDigits > 200) throw new Error('Numero troppo lungo: massimo 200 cifre significative.');
+  if (s[0] === '+' || s[0] === '-') s = s.slice(1);
+  let exp = 0;
+  const epos = s.search(/[eE]/);
+  if (epos >= 0) {
+    exp = Number(s.slice(epos + 1));
+    if (!Number.isSafeInteger(exp) || Math.abs(exp) > 10000) throw new Error('Esponente troppo grande: usa un valore tra −10000 e +10000.');
+    s = s.slice(0, epos);
+  }
+  let [a, b=''] = s.split('.');
+  a = a || '0';
+  const digits = (a + b).replace(/^0+(?=\d)/, '');
+  if (!/^\d+$/.test(digits)) throw new Error('Numero decimale non valido.');
+  let p = BigInt(digits || '0');
+  const scale = b.length - exp;
+  let num, den;
+  if (scale >= 0) { num = p; den = pow10(scale); }
+  else { num = p * pow10(-scale); den = 1n; }
+  if (num === 0n) return { kind:'finite', sign, num:0n, den:1n, text: (sign<0?'-':'')+'0' };
+  // Reduce powers of 2 for smaller exact arithmetic.
+  while ((num & 1n) === 0n && (den & 1n) === 0n) { num >>= 1n; den >>= 1n; }
+  return { kind:'finite', sign, num, den, text: (sign<0?'-':'') + `${a}.${b || '0'}` + (epos>=0 ? `e${exp>=0?'+':''}${exp}` : '') };
+}
+
+function cmpRationalPow2(num, den, e) {
+  if (e >= 0) {
+    const rhs = den << BigInt(e);
+    return num < rhs ? -1 : (num > rhs ? 1 : 0);
+  } else {
+    const lhs = num << BigInt(-e);
+    return lhs < den ? -1 : (lhs > den ? 1 : 0);
+  }
+}
+
+function floorLog2(num, den) {
+  let e = bitLength(num) - bitLength(den);
+  while (cmpRationalPow2(num, den, e) < 0) e--;
+  while (cmpRationalPow2(num, den, e + 1) >= 0) e++;
+  return e;
+}
+
+function roundNearestEven(num, den) {
+  const q = num / den;
+  const r = num % den;
+  const twice = r * 2n;
+  if (twice < den) return q;
+  if (twice > den) return q + 1n;
+  return (q & 1n) === 0n ? q : q + 1n;
+}
+
+function encodeFiniteToBits(num, den, sign) {
+  if (num === 0n) return (sign < 0 ? '1' : '0') + '0'.repeat(31);
+
+  const minNormalCmp = cmpRationalPow2(num, den, -126);
+  if (minNormalCmp < 0) {
+    // Subnormal: value = M * 2^-149, M is an unsigned 23-bit integer.
+    let scaledNum = num << 149n;
+    let M = roundNearestEven(scaledNum, den);
+    if (M === 0n) return (sign < 0 ? '1' : '0') + '0'.repeat(31);
+    if (M >= (1n << 23n)) {
+      // Rounded up to the minimum normal.
+      return (sign < 0 ? '1' : '0') + '00000001' + '0'.repeat(23);
+    }
+    const frac = M.toString(2).padStart(23, '0');
+    return (sign < 0 ? '1' : '0') + '00000000' + frac;
+  }
+
+  let e = floorLog2(num, den);
+  if (e > 127) return (sign < 0 ? '1' : '0') + '11111111' + '0'.repeat(23);
+
+  // M is the 24-bit significand (leading 1 included), rounded exactly.
+  let scaledNum, scaledDen;
+  if (23 - e >= 0) { scaledNum = num << BigInt(23-e); scaledDen = den; }
+  else { scaledNum = num; scaledDen = den << BigInt(e-23); }
+  let M = roundNearestEven(scaledNum, scaledDen);
+  if (M === (1n << 24n)) { M >>= 1n; e += 1; }
+  if (e > 127) return (sign < 0 ? '1' : '0') + '11111111' + '0'.repeat(23);
+  const exp = e + BIAS;
+  const expBits = exp.toString(2).padStart(8, '0');
+  const frac = (M - (1n<<23n)).toString(2).padStart(23, '0');
+  return (sign < 0 ? '1' : '0') + expBits + frac;
+}
+
+function bitsToFields(bits) {
+  if (!/^\d{32}$/.test(bits)) throw new Error('Servono esattamente 32 bit (solo 0 e 1).');
+  return { signBit: bits[0], expBits: bits.slice(1,9), fracBits: bits.slice(9) };
+}
+
+function bitsToExact(bits) {
+  const { signBit, expBits, fracBits } = bitsToFields(bits);
+  const s = signBit === '1' ? -1 : 1;
+  const E = parseInt(expBits, 2);
+  const F = BigInt('0b' + fracBits);
+  if (E === 255) {
+    return F === 0n ? { kind:'inf', sign:s } : { kind:'nan' };
+  }
+  if (E === 0) {
+    if (F === 0n) return { kind:'finite', sign:s, num:0n, den:1n };
+    return { kind:'finite', sign:s, num:F, den:1n << 149n };
+  }
+  const M = (1n<<23n) + F;
+  const e = E - BIAS;
+  if (e >= 0) return { kind:'finite', sign:s, num:M << BigInt(e), den:1n<<23n };
+  return { kind:'finite', sign:s, num:M, den:1n << BigInt(23-e) };
+}
+
+function rationalToExactDecimal(num, den, sign=1) {
+  if (num===0n) return sign<0 ? '-0' : '0';
+  let n=num, d=den;
+  if ((d & (d-1n)) !== 0n) throw new Error('Denominatore inatteso.');
+  const scale=bitLength(d)-1;
+  const scaled=n * (5n**BigInt(scale));
+  const str=scaled.toString().padStart(scale+1,'0');
+  const out=scale===0 ? str : str.slice(0,-scale)+'.'+str.slice(-scale);
+  return (sign<0?'-':'') + out.replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1');
+}
+
+function exactDecimalOfFloat(bits) {
+  const x = bitsToExact(bits);
+  if (x.kind==='inf') return x.sign<0 ? '-Infinity' : 'Infinity';
+  if (x.kind==='nan') return 'NaN';
+  return rationalToExactDecimal(x.num,x.den,x.sign);
+}
+
+function scientificFromRational(num, den, sign=1, sig=15) {
+  if (num===0n) return sign<0 ? '-0' : '0';
+  let n=num, d=den;
+  const e=floorLog2(n,d);
+  // decimal exponent approximation using ratio of bit lengths, then correct by exact compare.
+  let de=Math.floor((e+1)*Math.LOG10E);
+  const cmpPow10 = (a,b,p) => p>=0 ? (a < b*pow10(p) ? -1 : a > b*pow10(p) ? 1 : 0) : (a*pow10(-p) < b ? -1 : a*pow10(-p) > b ? 1 : 0);
+  while(cmpPow10(n,d,de)<0) de--;
+  while(cmpPow10(n,d,de+1)>=0) de++;
+  const targetScale = sig-1-de;
+  let sn, sd;
+  if (targetScale>=0) { sn=n*pow10(targetScale); sd=d; }
+  else { sn=n; sd=d*pow10(-targetScale); }
+  let q=roundNearestEven(sn,sd);
+  let qstr=q.toString();
+  let roundedDe=de;
+  if(qstr.length>sig){ q/=10n; roundedDe++; qstr=q.toString(); }
+  qstr=qstr.padStart(sig,'0');
+  const mant = sig===1 ? qstr : qstr[0]+'.'+qstr.slice(1);
+  return `${sign<0?'-':''}${mant}e${roundedDe>=0?'+':''}${roundedDe}`;
+}
+
+function absRationalError(original, stored) {
+  if (original.kind!=='finite' || stored.kind!=='finite') return null;
+  const aN = original.sign<0 ? -original.num : original.num;
+  const bN = stored.sign<0 ? -stored.num : stored.num;
+  const num = aN*stored.den - bN*original.den;
+  const den = original.den*stored.den;
+  return { num: num<0n?-num:num, den };
+}
+
+function relationText(err, original) {
+  if (!err || err.num===0n) return {kind:'ok',text:'✓ Nessun errore: il valore torna uguale.'};
+  const approx = scientificFromRational(err.num,err.den,1,8);
+  return {kind:'warn',text:`⚠ Il valore cambia dopo il passaggio in binary32. Errore assoluto ≈ ${approx}.`};
+}
+
+function hexFromBits(bits){return '0x'+BigInt('0b'+bits).toString(16).padStart(8,'0').toUpperCase();}
+
+function grouped(bits){return bits.slice(0,1)+' '+bits.slice(1,9)+' '+bits.slice(9);}
+
+function formatSignedPow2(e){return e===0 ? '1' : `2<sup>${e}</sup>`}
+
+function makeDecimalSteps(parsed, bits){
+  if(parsed.kind==='nan') return [
+    {title:'Valore speciale', eq:'NaN', text:'NaN non rappresenta un numero finito. In binary32 basta un esponente tutto a 1 e una frazione non nulla.', callout:`Bit: <b>${grouped(bits)}</b><br>Hex: <b>${hexFromBits(bits)}</b>`}
+  ];
+  if(parsed.kind==='inf') return [
+    {title:'Valore speciale', eq:`${parsed.sign<0?'-':''}∞`, text:'L’infinito ha esponente tutto a 1 e frazione tutta a 0.', callout:`Bit: <b>${grouped(bits)}</b><br>Hex: <b>${hexFromBits(bits)}</b>`}
+  ];
+  if(parsed.num===0n) return [
+    {title:'Zero', eq:`${parsed.sign<0?'-':''}0`, text:'Per zero, tutti i bit sono 0. Il bit di segno resta utile per distinguere +0 e −0.', callout:`Bit: <b>${grouped(bits)}</b>`},
+    {title:'Risultato', eq:grouped(bits), text:'Questo è il pattern IEEE 754 binary32.', callout:`Hex: <b>${hexFromBits(bits)}</b>`}
+  ];
+  const sign = parsed.sign < 0 ? '1':'0';
+  const absNum=parsed.num, den=parsed.den;
+  const e=floorLog2(absNum,den);
+  const isSub=e < -126;
+  const exactBinInt = absNum * (1n); // kept explicit for pedagogy
+  const binaryPreview = toBinaryScientificPreview(absNum,den, e, 40);
+  const stored = bitsToExact(bits);
+  const {expBits, fracBits} = bitsToFields(bits);
+  const storedVal=exactDecimalOfFloat(bits);
+  const err=absRationalError(parsed,stored);
+
+  const steps=[];
+  steps.push({title:'1 · Segno',eq:`${parsed.sign<0?'-':''} → bit di segno = <b>${sign}</b>`,text:'Il modulo si lavora separatamente. Poi il bit di segno si mette in testa.',callout:`<b>Segno</b> = ${sign}`});
+  steps.push({title:'2 · Scrivo in base 2',eq:binaryPreview.text,text:binaryPreview.note,callout:binaryPreview.callout});
+  if(isSub){
+    steps.push({title:'3 · È un subnormale',eq:`|x| < 2<sup>−126</sup>`,text:'Manca la “1” implicita. Per binary32 si usa direttamente la scala 2⁻¹⁴⁹.',callout:`M = roundTiesToEven(|x| · 2<sup>149</sup>) = <b>${BigInt('0b'+fracBits).toString(10)}</b>`});
+  }else{
+    steps.push({title:'3 · Normalizzo',eq:`1.xxxxx × 2<sup>${e}</sup>`,text:'Sposto il punto fino ad avere una sola 1 prima del punto. Quel numero è l’esponente reale.',callout:`<b>e = ${e}</b>`});
+    const unbiased=e+BIAS;
+    steps.push({title:'4 · Applico il bias',eq:`${e} + 127 = <b>${unbiased}</b>`,text:'In binary32 l’esponente memorizzato è e + 127. Va scritto su 8 bit.',callout:`<b>${expBits}</b>`});
+    steps.push({title:'5 · Arrotondo a 23 bit',eq:`frazione → <b>${fracBits}</b>`,text:'Tengo 23 bit di frazione e arrotondo con la regola IEEE: nearest, ties to even.',callout:`Significand 24 bit: <b>1.${fracBits}</b>`});
+  }
+  steps.push({title:'6 · Assemblo',eq:`<b>${sign}</b> | <b>${expBits}</b> | <b>${fracBits}</b>`,text:'I tre campi formano esattamente 32 bit.',callout:`Binary32: <b>${grouped(bits)}</b><br>Hex: <b>${hexFromBits(bits)}</b>`});
+  steps.push({title:'7 · Torno indietro',eq:`${storedVal}`,text:'Ora decodifico quei 32 bit come farebbe una CPU.',callout:`Valore realmente memorizzato: <b>${storedVal}</b>`});
+  if(err && err.num!==0n){
+    steps.push({title:'8 · Controllo errore',eq:`|x − x<sub>mem</sub>|`,text:'Confronto esatto il razionale inserito con il razionale rappresentato dai 32 bit.',callout:`Errore assoluto ≈ <b>${scientificFromRational(err.num,err.den,1,10)}</b>`});
+  } else {
+    steps.push({title:'8 · Controllo errore',eq:'0',text:'I due valori coincidono esattamente.',callout:'<b>✓ Ritorno esatto</b>'});
+  }
+  return steps;
+}
+
+function toBinaryScientificPreview(num,den,e,limit){
+  // Normalize exactly: y = |x| / 2^e is in [1, 2).
+  let n=num, d=den;
+  if(e>=0) d <<= BigInt(e); else n <<= BigInt(-e);
+  const whole=n/d;
+  let rem=n%d;
+  let frac='';
+  for(let i=0;i<limit && rem!==0n;i++){
+    rem*=2n;
+    if(rem>=d){frac+='1';rem-=d}else frac+='0';
+  }
+  const infinite=rem!==0n;
+  const mant=`${whole.toString(2)}.${frac}${infinite?'…':''}`;
+  return {
+    text:`${mant} × 2<sup>${e}</sup>`,
+    note:'Mostro i primi bit della forma normalizzata. Il calcolo finale usa invece il valore decimale esatto.',
+    callout:`<b>Significand iniziale</b>: ${mant}`
+  };
+}
+
+function makeBinarySteps(bits){
+  const f=bitsToFields(bits);
+  const exact=bitsToExact(bits);
+  const E=parseInt(f.expBits,2), F=BigInt('0b'+f.fracBits);
+  const steps=[];
+  steps.push({title:'1 · Divido i 32 bit',eq:`<b>${f.signBit}</b> | <b>${f.expBits}</b> | <b>${f.fracBits}</b>`,text:'1 bit di segno, 8 bit di esponente, 23 bit di frazione.',callout:`Hex: <b>${hexFromBits(bits)}</b>`});
+  if(exact.kind==='nan'){
+    steps.push({title:'2 · Valore speciale',eq:'NaN',text:'Esponente = 255 e frazione diversa da zero.',callout:`E = <b>${E}</b>, F ≠ 0 → <b>NaN</b>`});
+    return steps;
+  }
+  if(exact.kind==='inf'){
+    steps.push({title:'2 · Valore speciale',eq:`${exact.sign<0?'-':''}∞`,text:'Esponente = 255 e frazione uguale a zero.',callout:`E = <b>${E}</b>, F = 0 → <b>${exact.sign<0?'-':''}Infinity</b>`});
+    return steps;
+  }
+  if(exact.num===0n){
+    steps.push({title:'2 · Zero',eq:`${exact.sign<0?'-':''}0`,text:'Esponente e frazione sono entrambi zero.',callout:'Il valore è zero.'});
+    return steps;
+  }
+  if(E===0){
+    steps.push({title:'2 · Subnormale',eq:'E = 0',text:'Con esponente memorizzato 0 non c’è la 1 implicita.',callout:`Valore = (-1)<sup>${f.signBit}</sup> × <b>${F}</b> × 2<sup>−149</sup>`});
+  } else {
+    const e=E-BIAS;
+    steps.push({title:'2 · Tolgo il bias',eq:`${E} − 127 = <b>${e}</b>`,text:'L’esponente memorizzato non è quello reale: devo togliere 127.',callout:`e = <b>${e}</b>`});
+    steps.push({title:'3 · Ricostruisco la significand',eq:`1.${f.fracBits}`,text:'Per un numero normale la 1 davanti al punto è implicita.',callout:'Sommo i pesi dei 23 bit della frazione.'});
+    const terms=[];
+    for(let i=0;i<23;i++) if(f.fracBits[i]==='1') terms.push(`2<sup>−${i+1}</sup>`);
+    const fracText=terms.length?terms.join(' + '):'0';
+    steps.push({title:'4 · Valuto la frazione',eq:`1 + (${fracText})`,text:'Ogni 1 della frazione vale una potenza negativa di 2.',callout:`Frazione = <b>${rationalToExactDecimal(F,1n<<23n,1)}</b><br>Significand = <b>${rationalToExactDecimal((1n<<23n)+F,1n<<23n,1)}</b>`});
+  }
+  const storedVal=exactDecimalOfFloat(bits);
+  const signTxt=f.signBit==='1'?'−':'';
+  const magnitudeFormula = E===0 ? `${F} × 2<sup>−149</sup>` : `(1 + frazione) × 2<sup>${E-BIAS}</sup>`;
+  steps.push({title:'5 · Calcolo finale',eq:`${signTxt}${storedVal.replace(/^-/,'')}`,text:`Formula: ${magnitudeFormula}.`,callout:`Valore esatto memorizzato: <b>${storedVal}</b>`});
+  return steps;
+}
+
+function renderBits(bits){
+  const normalized=bits.replace(/\s/g,'');
+  if(!/^\d{32}$/.test(normalized)) return;
+  $('binaryInput').value=normalized;
+  const make=(id,start,count,kind)=>{
+    const el=$(id); el.innerHTML='';
+    for(let i=0;i<count;i++){
+      const b=document.createElement('button'); b.type='button'; b.className=`bit ${kind}`; b.textContent=normalized[start+i];
+      b.setAttribute('aria-label',`${kind==='s'?'segno':kind==='e'?'esponente':'frazione'} bit ${i+1}: ${normalized[start+i]}`);
+      b.dataset.idx=String(start+i);
+      b.addEventListener('click',()=>{
+        const arr=($('binaryInput').value.replace(/\s/g,'' )).split('');
+        arr[Number(b.dataset.idx)]=arr[Number(b.dataset.idx)]==='0'?'1':'0';
+        setBinary(arr.join(''));
+      });
+      el.appendChild(b);
+    }
+  };
+  make('signBits',0,1,'s'); make('expBits',1,8,'e'); make('fracBits',9,23,'f');
+}
+
+function setDecimal(value){
+  state.decimal=value; $('decimalInput').value=value;
+  try{
+    const parsed=parseDecimal(value);
+    let bits;
+    if(parsed.kind==='nan') bits='01111111110000000000000000000000';
+    else if(parsed.kind==='inf') bits=(parsed.sign<0?'1':'0')+'11111111'+'0'.repeat(23);
+    else bits=encodeFiniteToBits(parsed.num,parsed.den,parsed.sign);
+    state.bits=bits;
+    renderBits(bits);
+    state.steps=makeDecimalSteps(parsed,bits);
+    state.index=0;
+    renderState();
+  }catch(err){
+    state.steps=[{title:'Controllo input',eq:'?',text:err.message,callout:'Correggi il numero e riprova.'}];
+    state.index=0; renderState();
+  }
+}
+
+function setBinary(value){
+  const raw=String(value).trim();
+  const bits=raw.replace(/\s/g,'');
+  $('binaryInput').value=raw;
+  if(!/^[01]*$/.test(bits)){
+    state.bits=bits;
+    state.steps=[{title:'Controllo input',eq:'0 / 1',text:'Sono ammessi solo i caratteri 0 e 1, con eventuali spazi.',callout:'Correggi il campo binario.'}];
+    state.index=0; renderState(false); return;
+  }
+  if(bits.length!==32){
+    state.bits=bits;
+    state.steps=[{title:'Controllo input',eq:`${bits.length} / 32 bit`,text:'Servono esattamente 32 bit.',callout:'Usa solo 0 e 1.'}];
+    state.index=0; renderState(false); return;
+  }
+  state.bits=bits;
+  renderBits(bits);
+  const x=bitsToExact(bits);
+  const dec=x.kind==='nan'?'NaN':x.kind==='inf'?(x.sign<0?'-Infinity':'Infinity'):exactDecimalOfFloat(bits);
+  state.steps=makeBinarySteps(bits); state.index=0;
+  $('decimalInput').value=dec;
+  renderState();
+}
+
+function renderState(updateBinary=true){
+  $('modeDec').setAttribute('aria-pressed',String(state.mode==='dec'));
+  $('modeBin').setAttribute('aria-pressed',String(state.mode==='bin'));
+  if(updateBinary) renderBits(state.bits);
+  const parsed = state.mode==='dec' ? (()=>{try{return parseDecimal(state.decimal)}catch{return null}})() : null;
+  if(state.mode==='dec' && parsed){
+    const stored=bitsToExact(state.bits);
+    const storedVal=exactDecimalOfFloat(state.bits);
+    $('resultTitle').textContent='Valore memorizzato in binary32';
+    $('resultValue').textContent=storedVal;
+    const err=absRationalError(parsed,stored);
+    if(err && err.num===0n){$('status').className='status ok';$('status').textContent='✓ Ritorno esatto: il valore è rappresentabile senza errore.';$('errorText').textContent='';}
+    else if(err){$('status').className='status warn';$('status').textContent='⚠ Il valore è stato arrotondato in binary32.';$('errorText').textContent='Errore assoluto ≈ '+scientificFromRational(err.num,err.den,1,10);}
+    else {$('status').className='status';$('status').textContent='';$('errorText').textContent='';}
+  } else if(state.mode==='bin' && /^\d{32}$/.test(state.bits)) {
+    const x=bitsToExact(state.bits);
+    $('resultTitle').textContent='Valore decimale';
+    $('resultValue').textContent=x.kind==='nan'?'NaN':x.kind==='inf'?(x.sign<0?'-Infinity':'Infinity'):exactDecimalOfFloat(state.bits);
+    $('status').className='status ok'; $('status').textContent='✓ Decodifica esatta dei 32 bit.';$('errorText').textContent='';
+  } else {
+    $('resultTitle').textContent='Valore';$('resultValue').textContent='—';$('status').className='status bad';$('status').textContent='✕ Input incompleto o non valido.';$('errorText').textContent='';
+  }
+  const step=state.steps[state.index] || {title:'Procedimento',eq:'—',text:'Inserisci un valore.'};
+  $('stepNo').textContent=`Passo ${Math.min(state.index+1,state.steps.length)} di ${state.steps.length}`;
+  $('stepsTitle').textContent=step.title;
+  $('stepBody').innerHTML=`<div class="equation">${step.eq||''}</div><div class="stepText">${step.text||''}</div>${step.callout?`<div class="callout">${step.callout}</div>`:''}`;
+  const pct=state.steps.length>1 ? (state.index/(state.steps.length-1))*100 : 100;
+  $('progressBar').style.width=pct+'%';
+  $('prevBtn').disabled=state.index<=0;
+  $('nextBtn').disabled=state.index>=state.steps.length-1;
+  $('nextBtn').textContent=state.index>=state.steps.length-1?'Fine ✓':'Avanti →';
+  const dots=$('stepDots'); dots.innerHTML='';
+  state.steps.forEach((_,i)=>{const d=document.createElement('span');d.className='dot'+(i===state.index?' active':'');dots.appendChild(d)});
+}
+
+$('decimalInput').addEventListener('input',e=>{state.mode='dec';setDecimal(e.target.value)});
+$('binaryInput').addEventListener('input',e=>{state.mode='bin';setBinary(e.target.value)});
+$('modeDec').addEventListener('click',()=>{state.mode='dec';setDecimal(state.decimal)});
+$('modeBin').addEventListener('click',()=>{state.mode='bin';setBinary(state.bits)});
+$('prevBtn').addEventListener('click',()=>{if(state.index>0){state.index--;renderState()}});
+$('nextBtn').addEventListener('click',()=>{if(state.index<state.steps.length-1){state.index++;renderState()}});
+$('resetBtn').addEventListener('click',()=>setDecimal('0.1'));
+$('whiteboardBtn').addEventListener('click',()=>{state.whiteboard=!state.whiteboard;document.body.classList.toggle('whiteboard',state.whiteboard);$('whiteboardBtn').textContent=state.whiteboard?'▣ Vista normale':'◱ Lavagna';renderState()});
+for(const btn of document.querySelectorAll('[data-example]')) btn.addEventListener('click',()=>{state.mode='dec';setDecimal(btn.dataset.example)});
+for(const btn of document.querySelectorAll('[data-bin]')) btn.addEventListener('click',()=>{state.mode='bin';setBinary(btn.dataset.bin)});
+document.addEventListener('keydown',e=>{
+  if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+  if(e.key==='ArrowLeft' && state.index>0){state.index--;renderState()}
+  if(e.key==='ArrowRight' && state.index<state.steps.length-1){state.index++;renderState()}
+  if(e.key===' '){e.preventDefault(); if(state.index<state.steps.length-1){state.index++;renderState()}}
+});
+
+setDecimal('0.1');
+</script>
+</body>
+</html>
